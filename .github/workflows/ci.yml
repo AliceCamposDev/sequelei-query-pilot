@@ -31,6 +31,9 @@ jobs:
           node-version: 20
           cache: pnpm
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Cache Cargo
         uses: actions/cache@v4
         with:
@@ -53,6 +56,9 @@ jobs:
 
       - name: Test
         run: pnpm test:all
+
+      - name: Rust integration tests
+        run: pnpm test:rust
 
       - name: Build
         run: pnpm build

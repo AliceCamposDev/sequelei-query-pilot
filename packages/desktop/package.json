@@ -1,5 +1,13 @@
 {
   "name": "@sequelei/desktop",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0"
+  }
 }

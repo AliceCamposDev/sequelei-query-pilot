@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Sequelei",
+  "version": "0.1.0",
+  "identifier": "com.sequelei.app",
+  "build": {
+    "beforeDevCommand": "corepack pnpm --filter @sequelei/ui dev",
+    "beforeBuildCommand": "corepack pnpm --filter @sequelei/ui build",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../../ui/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Sequelei QueryPilot",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 640
+      }
+    ]
+  },
+  "bundle": {
+    "active": false,
+    "icon": ["icons/icon.ico"]
+  }
+}

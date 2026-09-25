@@ -4,12 +4,14 @@
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "lint": "eslint .",
-    "format": "prettier --write \"packages/**/*.ts\" \"*.{json,ts,yaml}\"",
-    "format:check": "prettier --check \"packages/**/*.ts\" \"*.{json,ts,yaml}\"",
+    "format": "prettier --write \"packages/**/*.{ts,tsx}\" \"e2e/**/*.ts\" \"*.{json,ts,yaml}\"",
+    "format:check": "prettier --check \"packages/**/*.{ts,tsx}\" \"e2e/**/*.ts\" \"*.{json,ts,yaml}\"",
     "build": "tsc --noEmit",
+    "dev:desktop": "corepack pnpm --filter @sequelei/desktop dev",
     "test": "corepack pnpm --filter @sequelei/core test",
     "test:all": "corepack pnpm --recursive --if-present test",
     "test:coverage": "corepack pnpm --filter @sequelei/core test:coverage",
+    "test:rust": "cargo test --manifest-path packages/desktop/src-tauri/Cargo.toml",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

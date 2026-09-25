@@ -68,6 +68,13 @@ Execute o teste de fumaça do núcleo:
 corepack pnpm test
 ```
 
+Para iniciar o shell desktop (requer Rust, Cargo e as dependências nativas do
+Tauri):
+
+```powershell
+corepack pnpm dev:desktop
+```
+
 ## Comandos disponíveis
 
 ```powershell
@@ -78,6 +85,7 @@ corepack pnpm typecheck     # Verifica os tipos TypeScript
 corepack pnpm test:all      # Executa os testes de todos os workspaces
 corepack pnpm test:coverage # Executa cobertura V8 do core
 corepack pnpm build         # Valida o build TypeScript atual
+corepack pnpm dev:desktop   # Inicia o shell Tauri com o frontend Vite
 ```
 
 A suíte E2E é executada no GitHub Actions quando um pull request recebe o label `e2e`.
