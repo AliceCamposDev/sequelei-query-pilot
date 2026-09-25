@@ -1,0 +1,5 @@
+{
+  "name": "@sequelei/agent-proxy",
+  "private": true,
+  "type": "module"
+}

@@ -1,0 +1,5 @@
+{
+  "name": "@sequelei/db",
+  "private": true,
+  "type": "module"
+}
