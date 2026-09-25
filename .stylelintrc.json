@@ -1,0 +1,15 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "plugins": ["./stylelint-palette-plugin.cjs", "stylelint-declaration-strict-value"],
+  "ignoreFiles": ["**/tokens.css"],
+  "rules": {
+    "sequelei/palette": true,
+    "scale-unlimited/declaration-strict-value": [
+      ["color", "background", "background-color", "border-color", "fill", "stroke"],
+      {
+        "ignoreValues": ["currentColor", "inherit", "none", "transparent"]
+      }
+    ],
+    "no-descending-specificity": null
+  }
+}

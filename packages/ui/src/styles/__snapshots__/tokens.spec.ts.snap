@@ -1,4 +1,7 @@
-:root {
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`design tokens > mantém o snapshot dos tokens compilados 1`] = `
+":root {
   --ink-black: #0b0814;
   --midnight-violet: #171128;
   --soft-periwinkle: #a994f2;
@@ -74,3 +77,5 @@
     --syn-comment: #8a7fa8;
   }
 }
+"
+`;

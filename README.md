@@ -81,12 +81,16 @@ corepack pnpm dev:desktop
 corepack pnpm lint          # ESLint
 corepack pnpm format        # Formata arquivos de código e configuração
 corepack pnpm format:check  # Verifica a formatação
+corepack pnpm run ci        # Executa typecheck, lint, Stylelint e format check
 corepack pnpm typecheck     # Verifica os tipos TypeScript
 corepack pnpm test:all      # Executa os testes de todos os workspaces
 corepack pnpm test:coverage # Executa cobertura V8 do core
 corepack pnpm build         # Valida o build TypeScript atual
 corepack pnpm dev:desktop   # Inicia o shell Tauri com o frontend Vite
 ```
+
+> Use `corepack pnpm run ci`: `ci` é um comando reservado pelo pnpm quando
+> executado sem `run`.
 
 A suíte E2E é executada no GitHub Actions quando um pull request recebe o label `e2e`.
 
