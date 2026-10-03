@@ -75,6 +75,18 @@ Tauri):
 corepack pnpm dev:desktop
 ```
 
+Para gerar um preview assinado internamente, configure `TAURI_SIGNING_PRIVATE_KEY`
+e execute:
+
+```powershell
+corepack pnpm build:preview
+```
+
+O workflow [Preview release](.github/workflows/preview.yml) gera artefatos para
+Windows, macOS e Linux. Ele pode ser executado manualmente ou pelo tag
+`v0.0.1-alpha`; os artefatos ficam disponíveis na execução do workflow do
+repositório privado.
+
 ## Comandos disponíveis
 
 ```powershell

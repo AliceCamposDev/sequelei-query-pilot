@@ -31,9 +31,13 @@ const preferencesSlice = createSlice({
     setTheme(state, action: PayloadAction<Theme>) {
       state.theme = action.payload;
     },
+    hydratePreferences(state, action: PayloadAction<Partial<PreferencesState>>) {
+      Object.assign(state, action.payload);
+    },
   },
 });
 
-export const { setApplyNolock, setDefaultTop, setTheme } = preferencesSlice.actions;
+export const { hydratePreferences, setApplyNolock, setDefaultTop, setTheme } =
+  preferencesSlice.actions;
 export const preferencesReducer = preferencesSlice.reducer;
 export { initialState as defaultPreferences };

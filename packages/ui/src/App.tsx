@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { useDispatch } from 'react-redux';
 
-type TauriInvoke = <T>(command: string) => Promise<T>;
+import { setTheme } from './store/preferencesSlice';
+import { usePreference } from './store/usePreference';
+
+import type { AppDispatch } from './store/store';
+
+type TauriInvoke = <T>(command: string, payload?: unknown) => Promise<T>;
 const USER_PREFERENCE_KEY = 'user_preference';
 
 type PanelPreferences = {
@@ -33,17 +39,14 @@ declare global {
 
 export function App() {
   const [status, setStatus] = useState('Conectando ao shell Tauri...');
+  const dispatch = useDispatch<AppDispatch>();
+  const theme = usePreference('theme');
   const [leftWidth, setLeftWidth] = useState(() =>
     readPanelPreference('explorerWidth', Number(localStorage.getItem('explorerWidth')) || 248),
   );
   const [rightWidth, setRightWidth] = useState(() =>
     readPanelPreference('chatWidth', Number(localStorage.getItem('chatWidth')) || 320),
   );
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    const savedTheme = localStorage.getItem('theme');
-
-    return savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'dark';
-  });
   const dragState = useRef<{ side: 'left' | 'right'; startX: number; startWidth: number } | null>(
     null,
   );
@@ -139,7 +142,10 @@ export function App() {
           <span className="connection-name">desenvolvimento</span>
         </div>
         <div className="topbar-actions">
-          <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+          <button
+            type="button"
+            onClick={() => dispatch(setTheme(theme === 'dark' ? 'light' : 'dark'))}
+          >
             {theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
           </button>
           <button type="button">Nova query</button>

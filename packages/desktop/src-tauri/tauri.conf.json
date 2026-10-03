@@ -26,6 +26,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": ["msi", "dmg", "deb", "appimage"],
     "icon": ["icons/icon.ico"]
   }
