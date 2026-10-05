@@ -4,6 +4,10 @@ use rusqlite::Connection;
 use tauri::AppHandle;
 use tauri::Manager;
 
+mod sql_connection;
+
+pub use sql_connection::{connect_sql_server, SqlConnectionError, SqlServerClient};
+
 pub fn ping() -> &'static str {
     "pong"
 }

@@ -1,7 +1,14 @@
 {
   "name": "@sequelei/core",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./highlighter": "./highlighter.ts",
+    "./sql-pipeline": "./sql-pipeline.ts"
+  },
   "scripts": {
     "test": "vitest run --config vitest.config.ts",
     "test:coverage": "vitest run --config vitest.config.ts --coverage"

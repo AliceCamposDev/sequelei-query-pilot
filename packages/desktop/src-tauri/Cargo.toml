@@ -13,4 +13,8 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 rusqlite = { version = "0.32", features = ["bundled"] }
+thiserror = "2"
 tauri = { version = "2", features = [] }
+tiberius = { version = "0.12", default-features = false, features = ["rustls", "tds73"] }
+tokio = { version = "1", features = ["macros", "net", "rt", "time"] }
+tokio-util = { version = "0.7", features = ["compat"] }

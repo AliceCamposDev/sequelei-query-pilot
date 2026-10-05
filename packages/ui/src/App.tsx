@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
+import { SqlEditor } from './editor/SqlEditor';
+import { TabBar } from './editor/TabBar';
+import { ObjectTree } from './explorer/ObjectTree';
 import { setTheme } from './store/preferencesSlice';
+import { closeTab, newTab, setActiveTab, updateTabSql } from './store/tabsSlice';
 import { usePreference } from './store/usePreference';
 
-import type { AppDispatch } from './store/store';
+import type { AppDispatch, RootState } from './store/store';
 
 type TauriInvoke = <T>(command: string, payload?: unknown) => Promise<T>;
 const USER_PREFERENCE_KEY = 'user_preference';
@@ -39,8 +43,15 @@ declare global {
 
 export function App() {
   const [status, setStatus] = useState('Conectando ao shell Tauri...');
+  const [chatMessage, setChatMessage] = useState('');
+  const [chatHistory, setChatHistory] = useState<
+    Array<{ role: 'assistant' | 'user'; text: string }>
+  >([]);
   const dispatch = useDispatch<AppDispatch>();
   const theme = usePreference('theme');
+  const { activeTabId, tabs } = useSelector((state: RootState) => state.tabs);
+  const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0]!;
+
   const [leftWidth, setLeftWidth] = useState(() =>
     readPanelPreference('explorerWidth', Number(localStorage.getItem('explorerWidth')) || 248),
   );
@@ -124,6 +135,30 @@ export function App() {
     if (side === 'right') setRightWidth((value) => Math.max(240, Math.min(460, value + direction)));
   };
 
+  const handleSelectTop1000 = (schema: string, table: string) => {
+    dispatch(
+      newTab({
+        sql: `select top 1000 *\nfrom ${schema}.${table} with (nolock);`,
+        title: `${schema}.${table}`,
+      }),
+    );
+  };
+
+  const handleAskAi = (prompt: string) => {
+    setChatMessage(prompt);
+  };
+
+  const handleSendMessage = () => {
+    if (!chatMessage.trim()) return;
+    const text = chatMessage.trim();
+    setChatHistory((prev) => [
+      ...prev,
+      { role: 'user', text },
+      { role: 'assistant', text: `Contexto recebido para consulta: "${text}".` },
+    ]);
+    setChatMessage('');
+  };
+
   return (
     <div className="app-shell" data-testid="app-shell">
       <header className="topbar" aria-label="Barra superior">
@@ -148,7 +183,9 @@ export function App() {
           >
             {theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
           </button>
-          <button type="button">Nova query</button>
+          <button type="button" onClick={() => dispatch(newTab())}>
+            Nova query
+          </button>
         </div>
       </header>
 
@@ -162,20 +199,7 @@ export function App() {
           data-testid="explorer-panel"
         >
           <PanelHeading eyebrow="OBJETOS" title="Explorador" action="Atualizar" />
-          <div className="panel-body explorer-tree">
-            <button type="button" className="tree-row tree-row-active">
-              ▾ <span>Banco de dados</span>
-            </button>
-            <button type="button" className="tree-row">
-              ▸ <span>dbo</span>
-            </button>
-            <button type="button" className="tree-row tree-row-muted">
-              ▸ <span>Tabelas</span>
-            </button>
-            <button type="button" className="tree-row tree-row-muted">
-              ▸ <span>Views</span>
-            </button>
-          </div>
+          <ObjectTree onAskAi={handleAskAi} onSelectTop1000={handleSelectTop1000} />
         </aside>
 
         <ResizeHandle
@@ -186,32 +210,24 @@ export function App() {
         />
 
         <main className="panel editor-panel" aria-label="Editor SQL" data-testid="editor-panel">
-          <PanelHeading eyebrow="QUERY 01" title="Consulta sem título" action="Executar" />
-          <div className="editor-tabs" role="tablist" aria-label="Abas de consulta">
-            <button type="button" role="tab" aria-selected="true">
-              Consulta 01 <span>×</span>
-            </button>
-            <button type="button" role="tab" aria-selected="false">
-              +
-            </button>
-          </div>
-          <div className="editor-surface" role="textbox" aria-label="Editor de SQL" tabIndex={0}>
-            <div className="line-numbers" aria-hidden="true">
-              1<br />2<br />3<br />4<br />5
-            </div>
-            <pre>
-              <code>
-                <span className="token-keyword">select</span>{' '}
-                <span className="token-function">top</span>{' '}
-                <span className="token-number">100</span> *{`\n`}
-                <span className="token-keyword">from</span> dbo.TBResultados{`\n`}
-                <span className="token-keyword">where</span> ativo ={' '}
-                <span className="token-number">1</span>
-                {`\n`}
-                <span className="token-keyword">order by</span> data_criacao{' '}
-                <span className="token-keyword">desc</span>;
-              </code>
-            </pre>
+          <PanelHeading
+            eyebrow={activeTab.title.toUpperCase()}
+            title={activeTab.title}
+            action="Executar"
+          />
+          <TabBar
+            activeTabId={activeTabId}
+            onAddTab={() => dispatch(newTab())}
+            onCloseTab={(id) => dispatch(closeTab(id))}
+            onSelectTab={(id) => dispatch(setActiveTab(id))}
+            tabs={tabs}
+          />
+          <div className="editor-container">
+            <SqlEditor
+              onChange={(sql) => dispatch(updateTabSql({ id: activeTab.id, sql }))}
+              theme={theme}
+              value={activeTab.sql}
+            />
           </div>
           <div className="editor-footer">
             <span>SQL Server 2016+</span>
@@ -227,17 +243,46 @@ export function App() {
         />
 
         <aside className="panel chat-panel" aria-label="Assistente de IA" data-testid="chat-panel">
-          <PanelHeading eyebrow="ASSISTENTE" title="Pergunte à IA" action="Limpar" />
+          <PanelHeading
+            eyebrow="ASSISTENTE"
+            title="Pergunte à IA"
+            action="Limpar"
+            onAction={() => setChatHistory([])}
+          />
           <div className="chat-body">
-            <div className="chat-intro">
-              <span className="chat-orb" aria-hidden="true">
-                ✦
-              </span>
-              <p>Descreva o que você quer consultar. O schema ativo será usado como contexto.</p>
-            </div>
+            {chatHistory.length === 0 ? (
+              <div className="chat-intro">
+                <span className="chat-orb" aria-hidden="true">
+                  ✦
+                </span>
+                <p>Descreva o que você quer consultar. O schema ativo será usado como contexto.</p>
+              </div>
+            ) : (
+              <div className="chat-messages" style={{ display: 'grid', gap: '0.5rem' }}>
+                {chatHistory.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="chat-message"
+                    style={{
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      lineHeight: '1.4',
+                      padding: '0.4rem 0.6rem',
+                    }}
+                  >
+                    <strong>{item.role === 'user' ? 'Você: ' : 'IA: '}</strong>
+                    <span>{item.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="chat-suggestions">
-              <button type="button">Faturamento por cidade</button>
-              <button type="button">Explique esta query</button>
+              <button type="button" onClick={() => setChatMessage('Faturamento por cidade')}>
+                Faturamento por cidade
+              </button>
+              <button type="button" onClick={() => setChatMessage('Explique esta query')}>
+                Explique esta query
+              </button>
             </div>
           </div>
           <div className="chat-composer">
@@ -245,8 +290,16 @@ export function App() {
               aria-label="Mensagem para a IA"
               placeholder="Pergunte sobre seus dados..."
               rows={3}
+              value={chatMessage}
+              onChange={(e) => setChatMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
             />
-            <button type="button" aria-label="Enviar mensagem">
+            <button type="button" aria-label="Enviar mensagem" onClick={handleSendMessage}>
               Enviar
             </button>
           </div>
@@ -266,13 +319,15 @@ export function App() {
 }
 
 function PanelHeading({
-  eyebrow,
-  title,
   action,
+  eyebrow,
+  onAction,
+  title,
 }: {
-  eyebrow: string;
-  title: string;
   action: string;
+  eyebrow: string;
+  onAction?: () => void;
+  title: string;
 }) {
   return (
     <div className="panel-heading">
@@ -280,21 +335,23 @@ function PanelHeading({
         <span className="panel-eyebrow">{eyebrow}</span>
         <h2>{title}</h2>
       </div>
-      <button type="button">{action}</button>
+      <button type="button" onClick={onAction}>
+        {action}
+      </button>
     </div>
   );
 }
 
 function ResizeHandle({
+  onAdjust,
+  onPointerDown,
   side,
   value,
-  onPointerDown,
-  onAdjust,
 }: {
+  onAdjust: (side: 'left' | 'right', direction: number) => void;
+  onPointerDown: (side: 'left' | 'right', event: React.PointerEvent<HTMLButtonElement>) => void;
   side: 'left' | 'right';
   value: number;
-  onPointerDown: (side: 'left' | 'right', event: React.PointerEvent<HTMLButtonElement>) => void;
-  onAdjust: (side: 'left' | 'right', direction: number) => void;
 }) {
   return (
     <button

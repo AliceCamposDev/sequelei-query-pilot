@@ -11,12 +11,16 @@
   "dependencies": {
     "@fontsource/inter": "^5.1.1",
     "@fontsource/jetbrains-mono": "^5.1.1",
+    "@monaco-editor/react": "^4.7.0",
     "@reduxjs/toolkit": "^2.5.0",
+    "@sequelei/core": "workspace:*",
+    "monaco-editor": "^0.57.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-redux": "^9.2.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.1.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
