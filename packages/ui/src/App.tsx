@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
+import { ExecutionOutput } from './editor/ExecutionOutput';
+import { RunButton } from './editor/RunButton';
 import { SqlEditor } from './editor/SqlEditor';
 import { TabBar } from './editor/TabBar';
 import { ObjectTree } from './explorer/ObjectTree';
@@ -43,12 +45,14 @@ declare global {
 
 export function App() {
   const [status, setStatus] = useState('Conectando ao shell Tauri...');
+  const [selectedSql, setSelectedSql] = useState('');
   const [chatMessage, setChatMessage] = useState('');
   const [chatHistory, setChatHistory] = useState<
     Array<{ role: 'assistant' | 'user'; text: string }>
   >([]);
   const dispatch = useDispatch<AppDispatch>();
   const theme = usePreference('theme');
+  const execution = useSelector((state: RootState) => state.execution);
   const { activeTabId, tabs } = useSelector((state: RootState) => state.tabs);
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0]!;
 
@@ -213,7 +217,7 @@ export function App() {
           <PanelHeading
             eyebrow={activeTab.title.toUpperCase()}
             title={activeTab.title}
-            action="Executar"
+            actionNode={<RunButton selectedSql={selectedSql} sql={activeTab.sql} />}
           />
           <TabBar
             activeTabId={activeTabId}
@@ -225,10 +229,12 @@ export function App() {
           <div className="editor-container">
             <SqlEditor
               onChange={(sql) => dispatch(updateTabSql({ id: activeTab.id, sql }))}
+              onSelectionChange={setSelectedSql}
               theme={theme}
               value={activeTab.sql}
             />
           </div>
+          <ExecutionOutput />
           <div className="editor-footer">
             <span>SQL Server 2016+</span>
             <span>Ln 1, Col 1</span>
@@ -308,9 +314,22 @@ export function App() {
 
       <footer className="statusbar" aria-label="Barra de status">
         <span>
-          <span className="status-dot" aria-hidden="true" /> Pronto
+          <span className="status-dot" aria-hidden="true" />{' '}
+          {execution.status === 'running'
+            ? 'Executando...'
+            : execution.status === 'error'
+              ? 'Erro na execução'
+              : execution.status === 'cancelled'
+                ? 'Cancelada'
+                : 'Pronto'}
         </span>
-        <span>{status}</span>
+        <span>
+          {execution.status === 'error' && execution.error
+            ? execution.error
+            : execution.status === 'success' && execution.durationMs !== null
+              ? `Concluída em ${execution.durationMs}ms (${execution.result?.rows.length ?? 0} linha(s))`
+              : status}
+        </span>
         <span>UTF-8</span>
         <span>SQL</span>
       </footer>
@@ -320,11 +339,13 @@ export function App() {
 
 function PanelHeading({
   action,
+  actionNode,
   eyebrow,
   onAction,
   title,
 }: {
-  action: string;
+  action?: string;
+  actionNode?: React.ReactNode;
   eyebrow: string;
   onAction?: () => void;
   title: string;
@@ -335,9 +356,11 @@ function PanelHeading({
         <span className="panel-eyebrow">{eyebrow}</span>
         <h2>{title}</h2>
       </div>
-      <button type="button" onClick={onAction}>
-        {action}
-      </button>
+      {actionNode ?? (
+        <button type="button" onClick={onAction}>
+          {action}
+        </button>
+      )}
     </div>
   );
 }

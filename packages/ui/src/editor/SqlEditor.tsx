@@ -4,11 +4,12 @@ import { configureMonaco, SQL_THEME_DARK, SQL_THEME_LIGHT } from './monacoSetup'
 
 interface SqlEditorProps {
   onChange: (sql: string) => void;
+  onSelectionChange?: (selectedSql: string) => void;
   theme?: 'dark' | 'light';
   value: string;
 }
 
-export function SqlEditor({ onChange, theme = 'dark', value }: SqlEditorProps) {
+export function SqlEditor({ onChange, onSelectionChange, theme = 'dark', value }: SqlEditorProps) {
   const monacoTheme = theme === 'light' ? SQL_THEME_LIGHT : SQL_THEME_DARK;
 
   return (
@@ -17,6 +18,18 @@ export function SqlEditor({ onChange, theme = 'dark', value }: SqlEditorProps) {
       height="100%"
       language="sql"
       onChange={(nextValue) => onChange(nextValue ?? '')}
+      onMount={(editor) => {
+        if (!onSelectionChange) return;
+        editor.onDidChangeCursorSelection(() => {
+          const model = editor.getModel();
+          const selection = editor.getSelection();
+          if (!model || !selection || selection.isEmpty()) {
+            onSelectionChange('');
+            return;
+          }
+          onSelectionChange(model.getValueInRange(selection));
+        });
+      }}
       options={{
         automaticLayout: true,
         fontFamily: "'JetBrains Mono', monospace",

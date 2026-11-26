@@ -161,10 +161,17 @@ pre {
 }
 
 .topbar-actions button:last-child,
-.chat-composer button {
+.chat-composer button,
+.run-button {
   border-color: var(--accent-line);
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+.run-button-cancel {
+  border-color: var(--danger);
+  background: transparent;
+  color: var(--danger);
 }
 
 .workspace {
@@ -188,7 +195,7 @@ pre {
 
 .editor-panel {
   display: grid;
-  grid-template-rows: auto 34px minmax(0, 1fr) 25px;
+  grid-template-rows: auto 34px minmax(180px, 1fr) minmax(130px, 34%) 25px;
   background: var(--bg-0);
 }
 
@@ -459,6 +466,160 @@ pre {
   justify-content: space-between;
   padding: 0 0.85rem;
   border-top: 1px solid var(--border);
+}
+
+.execution-output {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-top: 1px solid var(--border);
+  background: var(--bg-1);
+}
+
+.execution-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.65rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+}
+
+.execution-tabs > button {
+  padding: 0.42rem 0.65rem;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+}
+
+.execution-tabs > button.execution-tab-active {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.execution-tabs-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  font-size: 0.68rem;
+}
+
+.execution-badge {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.execution-duration {
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.execution-clear-btn {
+  padding: 0.18rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-1);
+  color: var(--text-faint);
+  font-size: 0.68rem;
+}
+
+.execution-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.55rem 0.85rem;
+  background: var(--bg-0);
+}
+
+.execution-placeholder {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 0.74rem;
+}
+
+.execution-log-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+}
+
+.execution-log-item {
+  display: flex;
+  gap: 0.5rem;
+  line-height: 1.45;
+}
+
+.execution-log-time {
+  flex: 0 0 auto;
+  color: var(--text-faint);
+}
+
+.execution-log-info {
+  color: var(--text-dim);
+}
+
+.execution-log-success {
+  color: var(--success);
+}
+
+.execution-log-warning {
+  color: var(--warning);
+}
+
+.execution-log-error {
+  color: var(--danger);
+}
+
+.execution-grid-wrapper {
+  overflow: auto;
+}
+
+.execution-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+}
+
+.execution-grid th,
+.execution-grid td {
+  padding: 0.32rem 0.55rem;
+  border: 1px solid var(--border-soft);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.execution-grid th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-2);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.execution-grid-index {
+  width: 36px;
+  color: var(--text-faint);
+  text-align: right;
+}
+
+.execution-cell-num {
+  text-align: right;
+}
+
+.execution-cell-null {
+  color: var(--text-faint);
+  font-style: italic;
 }
 
 .chat-body {

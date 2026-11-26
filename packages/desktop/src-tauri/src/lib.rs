@@ -6,6 +6,7 @@ use tauri::{AppHandle, Manager, State};
 mod connections;
 mod credential_store;
 mod metadata;
+mod query_execution;
 mod sql_connection;
 
 pub use connections::{
@@ -20,6 +21,9 @@ pub use credential_store::{
 pub use metadata::{
     escape_sql_literal, quote_identifier, ColumnInfo, DatabaseInfo, ForeignKeyInfo, MetadataError,
     MetadataService, ProcedureInfo, TableInfo, ViewInfo, DEFAULT_METADATA_CACHE_TTL,
+};
+pub use query_execution::{
+    ExecuteQueryOptions, ExecuteQueryResponse, ExecutionRegistry, DEFAULT_QUERY_TIMEOUT_MS,
 };
 pub use sql_connection::{
     connect_sql_server, connect_with_options, create_sql_server_pool, execute_query,
@@ -248,6 +252,63 @@ fn invalidate_metadata_cache(
     metadata.invalidate_cache(connection_id.as_deref());
 }
 
+#[tauri::command(rename = "execute_query")]
+async fn execute_query_command(
+    sql: String,
+    options: Option<ExecuteQueryOptions>,
+    app: AppHandle,
+    registry: State<'_, ExecutionRegistry>,
+) -> Result<ExecuteQueryResponse, String> {
+    let opts = options.unwrap_or_default();
+    let connection_options = resolve_execution_options_for_app(&app, opts.connection_id.as_deref())?;
+
+    let mut client = connect_with_options(&connection_options)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    registry
+        .execute_with_registry(&mut client, &sql, opts)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn cancel_query(
+    execution_id: Option<String>,
+    registry: State<'_, ExecutionRegistry>,
+) -> bool {
+    match execution_id {
+        Some(id) if !id.trim().is_empty() => registry.cancel(id.trim()),
+        _ => registry.cancel_all() > 0,
+    }
+}
+
+fn resolve_execution_options_for_app(
+    app: &AppHandle,
+    requested_id: Option<&str>,
+) -> Result<ConnectionOptions, String> {
+    let db = open_app_database(app)?;
+    let manager = ConnectionManager::system();
+
+    let target_id = match requested_id {
+        Some(id) if !id.trim().is_empty() => id.trim().to_string(),
+        _ => {
+            let connections = manager
+                .list_connections(&db)
+                .map_err(|error| error.to_string())?;
+            connections
+                .into_iter()
+                .next()
+                .map(|conn| conn.id)
+                .ok_or_else(|| "nenhuma conexão SQL Server configurada".to_string())?
+        }
+    };
+
+    manager
+        .resolve_connection_options(&db, &target_id)
+        .map_err(|error| error.to_string())
+}
+
 fn resolve_options_for_app(app: &AppHandle, id: &str) -> Result<ConnectionOptions, String> {
     let db = open_app_database(app)?;
     ConnectionManager::system()
@@ -288,9 +349,12 @@ fn ping_command() -> &'static str {
 pub fn run() {
     tauri::Builder::default()
         .manage(MetadataService::new())
+        .manage(ExecutionRegistry::new())
         .invoke_handler(tauri::generate_handler![
+            cancel_query,
             create_connection,
             delete_connection,
+            execute_query_command,
             get_columns,
             get_databases,
             get_foreign_keys,

@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App';
+import { executionReducer } from './store/executionSlice';
 import { explorerReducer } from './store/explorerSlice';
 import { preferencesReducer } from './store/preferencesSlice';
 import { tabsReducer } from './store/tabsSlice';
@@ -21,6 +22,7 @@ vi.mock('@monaco-editor/react', () => ({
 function renderApp() {
   const store = configureStore({
     reducer: {
+      execution: executionReducer,
       explorer: explorerReducer,
       preferences: preferencesReducer,
       tabs: tabsReducer,
@@ -110,5 +112,14 @@ describe('App integration', () => {
     expect(
       (screen.getByRole('textbox', { name: 'Monaco SQL editor' }) as HTMLTextAreaElement).value,
     ).toBe('select 222');
+  });
+
+  it('exibe logs visíveis no painel de saída ao clicar em Executar', async () => {
+    renderApp();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Executar consulta' }));
+
+    expect(await screen.findByTestId('nolock-badge')).not.toBeNull();
+    expect(await screen.findByText(/Erro na execução:/i)).not.toBeNull();
   });
 });
