@@ -15,6 +15,11 @@ tauri-build = { version = "2", features = [] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 thiserror = "2"
 tauri = { version = "2", features = [] }
-tiberius = { version = "0.12", default-features = false, features = ["rustls", "tds73"] }
+tiberius = { version = "0.12", default-features = false, features = ["rustls", "tds73", "winauth"] }
 tokio = { version = "1", features = ["macros", "net", "rt", "time"] }
 tokio-util = { version = "0.7", features = ["compat"] }
+deadpool = { version = "0.13.1", features = ["rt_tokio_1"] }
+async-trait = "0.1.92"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }

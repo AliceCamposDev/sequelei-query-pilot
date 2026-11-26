@@ -6,7 +6,11 @@
   "types": "./index.ts",
   "exports": {
     ".": "./index.ts",
+    "./command-classifier": "./command-classifier.ts",
+    "./errors": "./errors.ts",
+    "./formatter": "./formatter.ts",
     "./highlighter": "./highlighter.ts",
+    "./nolock-injector": "./nolock-injector.ts",
     "./sql-pipeline": "./sql-pipeline.ts"
   },
   "scripts": {

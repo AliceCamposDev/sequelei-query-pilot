@@ -6,15 +6,25 @@ Tauri e concentra as regras reutilizáveis de SQL.
 ## Uso
 
 ```ts
-import { prepareSql, tokenize } from '@sequelei/core';
+import {
+  classifyCommand,
+  formatSQL,
+  injectNolock,
+  prepareSql,
+  tokenize,
+} from '@sequelei/core';
 
+const kind = classifyCommand('SELECT * FROM dbo.Clientes'); // 'read'
 const tokens = tokenize('select count(id) from dbo.users');
-const prepared = prepareSql('select 1');
+const safeSql = injectNolock('select * from dbo.Clientes where Ativo = 1');
+const prettySql = formatSQL('SELECT Nome FROM dbo.Clientes WHERE Ativo = 1');
+const prepared = prepareSql('SELECT * FROM dbo.Clientes', { applyNolock: true });
 ```
 
-`prepareSql` expõe o contrato do pipeline `{ executableSql, formattedSql,
-warnings }`. Nesta etapa ele é um stub que preserva a query; formatter, NOLOCK e
-classificação serão compostos nas próximas entregas da Fase 1.
+`prepareSql` compõe `classifyCommand` + `injectNolock` + `formatSQL` e retorna
+`{ commandKind, executableSql, formattedSql, nolockApplied, warnings }`.
+Consulte [`docs/sql-pipeline.md`](../../docs/sql-pipeline.md) para detalhes do
+fluxo, regras de formatação, códigos de erro (`SequeleiError`) e limitações.
 
 ## Testes
 

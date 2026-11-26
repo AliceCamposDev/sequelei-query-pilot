@@ -1,5 +1,5 @@
-import { prepareSql } from '@sequelei/core';
+import { formatSQL, prepareSql } from '@sequelei/core';
 
 export function useSqlPipeline() {
-  return { prepareSql };
+  return { formatSQL, prepareSql };
 }

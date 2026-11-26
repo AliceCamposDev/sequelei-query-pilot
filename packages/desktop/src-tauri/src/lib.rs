@@ -4,9 +4,18 @@ use rusqlite::Connection;
 use tauri::AppHandle;
 use tauri::Manager;
 
+mod credential_store;
 mod sql_connection;
 
-pub use sql_connection::{connect_sql_server, SqlConnectionError, SqlServerClient};
+pub use credential_store::{
+    CredentialBackend, CredentialError, CredentialStore, InMemoryCredentialBackend, KeyringBackend,
+    SecretString, UnavailableCredentialBackend, DEFAULT_SERVICE_NAME,
+};
+pub use sql_connection::{
+    connect_sql_server, create_sql_server_pool, execute_query, query_scalar_int, AuthMethod,
+    ConnectionOptions, MockSqlExecutor, QueryResult, SqlConnectionError, SqlExecutor,
+    SqlServerClient, SqlServerPool, SqlValue,
+};
 
 pub fn ping() -> &'static str {
     "pong"

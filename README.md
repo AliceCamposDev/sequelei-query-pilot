@@ -6,7 +6,7 @@ O Sequelei QueryPilot reúne editor SQL, explorador de objetos, execução de co
 
 ## Status
 
-O projeto está na **Fase 0 - Fundação**. O monorepo, a validação TypeScript, o lint, a formatação, o Vitest e os workflows básicos do GitHub Actions já estão configurados. As funcionalidades de produto serão implementadas nas próximas fases do roadmap.
+O projeto concluiu a **Fase 0 - Fundação** (pendências apenas administrativas/multi-SO) e a **Fase 1 - Núcleo SQL** (`@sequelei/core` com classificador, tokenizer, injetor de `with (nolock)`, formatador, erros tipados e pipeline unificado com cobertura > 95%), e está em andamento na **Fase 2 - Editor & Explorador** (driver Rust `tiberius` + `deadpool`, Monaco Editor com temas da paleta, abas e menu de contexto já implementados).
 
 ## Visão do produto
 
@@ -119,16 +119,14 @@ O workflow E2E instala o Chromium e executa o Playwright sob demanda. Consulte o
 
 ## Roadmap
 
-O planejamento detalhado está em [ai_slop/Roadmap.md](ai_slop/Roadmap.md). A documentação de requisitos e as decisões de desenvolvimento estão em [ai_slop/Documento de Requisitos e Guia de Desenvolvimento.md](ai_slop/Documento%20de%20Requisitos%20e%20Guia%20de%20Desenvolvimento.md).
+O planejamento detalhado está em [docs/ai_slop/Roadmap.md](docs/ai_slop/Roadmap.md). A documentação de requisitos e as decisões de desenvolvimento estão em [docs/ai_slop/Documento de Requisitos e Guia de Desenvolvimento.md](docs/ai_slop/Documento%20de%20Requisitos%20e%20Guia%20de%20Desenvolvimento.md).
 
-As próximas entregas incluem:
+As próximas entregas na Fase 2 incluem:
 
-- Inicialização do shell Tauri com React.
-- Editor SQL com Monaco e abas.
-- Conexão com SQL Server e explorador de objetos.
-- Pipeline de formatação, classificação e injeção de `nolock`.
-- Execução segura de consultas e visualização de resultados.
-- Agente de IA com contexto do schema.
+- Credential Store nativo (`keyring`) e comandos Tauri de gerenciamento de conexões.
+- Metadados reais do SQL Server (`sys.*`) com cache e explorador de objetos dinâmico (lazy loading e filtro).
+- Execução de consultas via toolbar (`execute_query`, cancelamento e timeout).
+- Persistência de abas / recuperação de crash e biblioteca inicial de queries salvas.
 
 ## Contribuindo
 
