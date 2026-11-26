@@ -3,24 +3,9 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { clearExecutionMessages } from '../store/executionSlice';
 
-import type { SqlValueDto } from '../services/execution';
-import type { AppDispatch, RootState } from '../store/store';
+import { ResultGrid } from './ResultGrid';
 
-function formatSqlCell(cell: SqlValueDto): { isNull: boolean; isNumeric: boolean; text: string } {
-  if (cell.type === 'Null') {
-    return { isNull: true, isNumeric: false, text: 'NULL' };
-  }
-  if (cell.type === 'Int' || cell.type === 'Float' || cell.type === 'Decimal') {
-    return { isNull: false, isNumeric: true, text: String(cell.value ?? '') };
-  }
-  if (cell.type === 'Boolean') {
-    return { isNull: false, isNumeric: false, text: cell.value ? 'true' : 'false' };
-  }
-  if (cell.type === 'Binary' && Array.isArray(cell.value)) {
-    return { isNull: false, isNumeric: false, text: `0x${cell.value.length}B` };
-  }
-  return { isNull: false, isNumeric: false, text: String(cell.value ?? '') };
-}
+import type { AppDispatch, RootState } from '../store/store';
 
 export function ExecutionOutput() {
   const dispatch = useDispatch<AppDispatch>();
@@ -109,45 +94,11 @@ export function ExecutionOutput() {
             </ul>
           )
         ) : execution.result && execution.result.columns.length > 0 ? (
-          <div className="execution-grid-wrapper">
-            <table
-              key={execution.result.executionId}
-              className="execution-grid"
-              data-testid="result-grid"
-            >
-              <thead>
-                <tr>
-                  <th className="execution-grid-index">#</th>
-                  {execution.result.columns.map((column, index) => (
-                    <th key={`${column}-${index}`}>{column || `(sem nome ${index + 1})`}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {execution.result.rows.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    <td className="execution-grid-index">{rowIndex + 1}</td>
-                    {row.map((cell, cellIndex) => {
-                      const formatted = formatSqlCell(cell);
-                      return (
-                        <td
-                          key={cellIndex}
-                          className={[
-                            formatted.isNull ? 'execution-cell-null' : '',
-                            formatted.isNumeric ? 'execution-cell-num' : '',
-                          ]
-                            .filter(Boolean)
-                            .join(' ')}
-                        >
-                          {formatted.text}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ResultGrid
+            key={execution.result.executionId}
+            columns={execution.result.columns}
+            rows={execution.result.rows}
+          />
         ) : (
           <p className="execution-placeholder">
             {execution.error

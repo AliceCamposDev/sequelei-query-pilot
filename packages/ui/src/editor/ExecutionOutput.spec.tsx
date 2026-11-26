@@ -91,7 +91,7 @@ describe('ExecutionOutput', () => {
 
     expect(screen.getByTestId('result-grid')).not.toBeNull();
     expect(screen.getByText('42')).not.toBeNull();
-    expect(screen.getByText('NULL').className).toContain('execution-cell-null');
+    expect(screen.getByText('NULL').className).toContain('result-cell-null');
     expect(screen.getByText('14ms')).not.toBeNull();
   });
 });
