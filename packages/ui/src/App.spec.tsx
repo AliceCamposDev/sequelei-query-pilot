@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App';
+import { explorerReducer } from './store/explorerSlice';
 import { preferencesReducer } from './store/preferencesSlice';
 import { tabsReducer } from './store/tabsSlice';
 
@@ -20,6 +21,7 @@ vi.mock('@monaco-editor/react', () => ({
 function renderApp() {
   const store = configureStore({
     reducer: {
+      explorer: explorerReducer,
       preferences: preferencesReducer,
       tabs: tabsReducer,
     },

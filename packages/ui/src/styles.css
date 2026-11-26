@@ -223,9 +223,10 @@ pre {
 
 .tree-row {
   display: flex;
+  align-items: center;
   width: 100%;
-  gap: 0.5rem;
-  padding: 0.52rem 0.55rem;
+  gap: 0.45rem;
+  padding: 0.45rem 0.55rem;
   border-radius: 4px;
   background: transparent;
   color: var(--text-dim);
@@ -241,6 +242,69 @@ pre {
 
 .tree-row-muted {
   color: var(--text-faint);
+}
+
+.tree-filter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.tree-filter-input {
+  width: 100%;
+  padding: 0.42rem 1.7rem 0.42rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-0);
+  color: var(--text);
+  font-size: 0.74rem;
+}
+
+.tree-filter-clear {
+  position: absolute;
+  right: 0.35rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+
+.tree-chevron {
+  display: inline-block;
+  width: 0.8rem;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.tree-node-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-node-pk {
+  padding: 0.05rem 0.3rem;
+  border: 1px solid var(--accent-line);
+  border-radius: 3px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.tree-node-meta {
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.66rem;
+}
+
+.tree-empty {
+  margin: 0.5rem 0;
+  color: var(--text-faint);
+  font-size: 0.74rem;
 }
 
 .resize-handle {

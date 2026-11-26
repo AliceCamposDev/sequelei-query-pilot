@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 
+import { explorerReducer } from './explorerSlice';
 import { preferencesReducer } from './preferencesSlice';
 import { createPreferencesSync } from './preferencesSync';
 import { tabsReducer } from './tabsSlice';
 
 export const store = configureStore({
   reducer: {
+    explorer: explorerReducer,
     preferences: preferencesReducer,
     tabs: tabsReducer,
   },
