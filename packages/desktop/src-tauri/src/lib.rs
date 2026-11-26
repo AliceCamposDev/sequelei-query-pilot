@@ -133,6 +133,24 @@ async fn get_databases(
 }
 
 #[tauri::command]
+async fn create_database(
+    connection_id: String,
+    name: String,
+    app: AppHandle,
+    metadata: State<'_, MetadataService>,
+) -> Result<DatabaseInfo, String> {
+    let options = resolve_options_for_app(&app, &connection_id)?;
+    let mut client = connect_with_options(&options)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    metadata
+        .create_database(&mut client, &connection_id, &name)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 async fn get_tables(
     connection_id: String,
     db: String,
@@ -353,6 +371,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             cancel_query,
             create_connection,
+            create_database,
             delete_connection,
             execute_query_command,
             get_columns,

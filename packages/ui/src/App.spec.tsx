@@ -39,6 +39,7 @@ function renderApp() {
 describe('App integration', () => {
   afterEach(() => {
     cleanup();
+    delete window.__TAURI__;
   });
 
   it('renderiza os painéis principais com tabs e editor integrados', () => {
@@ -121,5 +122,70 @@ describe('App integration', () => {
 
     expect(await screen.findByTestId('nolock-badge')).not.toBeNull();
     expect(await screen.findByText(/Erro na execução:/i)).not.toBeNull();
+  });
+
+  it('abre modal de conexões, cria conexão real, lista bancos reais e cria novo banco', async () => {
+    const databases = [{ name: 'Vendas', state: 'ONLINE' }];
+    const invoke = vi.fn(async (command: string, payload?: unknown) => {
+      if (command === 'ping') return 'pong';
+      if (command === 'list_connections') return [];
+      if (command === 'create_connection') {
+        return {
+          authType: 'sql',
+          createdAt: '2026-11-25 22:40:00',
+          database: 'master',
+          encrypt: true,
+          environment: 'dev',
+          host: 'localhost',
+          id: 'conn-real-1',
+          name: 'SQL Local Real',
+          port: 1433,
+          trustServerCertificate: true,
+          username: 'sa',
+        };
+      }
+      if (command === 'get_databases') return [...databases];
+      if (command === 'create_database') {
+        const { name } = payload as { name: string };
+        databases.push({ name, state: 'ONLINE' });
+        return { name, state: 'ONLINE' };
+      }
+      if (command === 'invalidate_metadata_cache') return undefined;
+      return undefined;
+    });
+
+    window.__TAURI__ = {
+      core: {
+        invoke: invoke as unknown as <T>(command: string, payload?: unknown) => Promise<T>,
+      },
+    };
+
+    renderApp();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Conexões' }));
+    expect(screen.getByTestId('connection-dialog')).not.toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Nome da conexão'), {
+      target: { value: 'SQL Local Real' },
+    });
+    fireEvent.change(screen.getByLabelText('Senha'), {
+      target: { value: 'Senha#2026' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar e conectar' }));
+
+    // Explorador passa a listar os bancos reais vindos de get_databases
+    expect(await screen.findByRole('treeitem', { name: /Vendas/ })).not.toBeNull();
+
+    // Cria novo banco pela aba de conexões e recarrega o explorador
+    fireEvent.change(screen.getByPlaceholderText(/Nome do novo banco/i), {
+      target: { value: 'SequeleiLab' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Criar banco' }));
+
+    expect(await screen.findByRole('treeitem', { name: /SequeleiLab/ })).not.toBeNull();
+    expect(invoke).toHaveBeenCalledWith('create_database', {
+      connectionId: 'conn-real-1',
+      name: 'SequeleiLab',
+    });
   });
 });

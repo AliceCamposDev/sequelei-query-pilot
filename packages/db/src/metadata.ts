@@ -16,6 +16,14 @@ export function getDatabases(
   return invoke<DatabaseInfo[]>('get_databases', { connectionId });
 }
 
+export function createDatabase(
+  connectionId: string,
+  name: string,
+  invoke: MetadataInvoker,
+): Promise<DatabaseInfo> {
+  return invoke<DatabaseInfo>('create_database', { connectionId, name });
+}
+
 export function getTables(
   connectionId: string,
   db: string,

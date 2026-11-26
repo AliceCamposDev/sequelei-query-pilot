@@ -79,14 +79,6 @@ const executionSlice = createSlice({
       for (const warning of action.payload.warnings) {
         state.messages.push(makeMessage('warning', warning));
       }
-
-      state.messages.push(makeMessage('info', `Executando consulta (${action.payload.executionId})...`));
-      if (action.payload.nolockApplied) {
-        state.messages.push(makeMessage('info', 'NOLOCK aplicado automaticamente na cópia enviada.'));
-      }
-      for (const warning of action.payload.warnings) {
-        state.messages.push(makeMessage('warning', warning));
-      }
     },
     completeExecution(state, action: PayloadAction<ExecuteQueryResponse>) {
       if (state.status !== 'running' || state.activeExecutionId !== action.payload.executionId) {

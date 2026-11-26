@@ -238,6 +238,25 @@ order by d.name";
         Ok(databases)
     }
 
+    pub async fn create_database<E: SqlExecutor>(
+        &self,
+        executor: &mut E,
+        connection_id: &str,
+        db_name: &str,
+    ) -> Result<DatabaseInfo, MetadataError> {
+        let quoted_db = quote_identifier(db_name)?;
+        let clean_name = db_name.trim().to_string();
+        let sql = format!("create database {quoted_db}");
+
+        execute_query(executor, &sql, Some(Duration::from_secs(30)), None).await?;
+        self.invalidate_cache(Some(connection_id));
+
+        Ok(DatabaseInfo {
+            name: clean_name,
+            state: "ONLINE".to_string(),
+        })
+    }
+
     pub async fn get_tables<E: SqlExecutor>(
         &self,
         executor: &mut E,

@@ -358,6 +358,63 @@ async fn rejects_unsafe_identifiers_to_prevent_sql_injection() {
     );
 }
 
+#[tokio::test]
+async fn create_database_executes_sanitized_ddl_and_invalidates_cache() {
+    let mut executor = RecordingSqlExecutor::new(|sql| {
+        if sql.to_lowercase().starts_with("create database") {
+            QueryResult {
+                columns: vec![],
+                rows: vec![],
+                rows_affected: 0,
+            }
+        } else {
+            QueryResult {
+                columns: vec!["name".to_string(), "state_desc".to_string()],
+                rows: vec![vec![
+                    SqlValue::Text("SequeleiLab".to_string()),
+                    SqlValue::Text("ONLINE".to_string()),
+                ]],
+                rows_affected: 1,
+            }
+        }
+    });
+
+    let service = MetadataService::new();
+
+    // Popula cache inicial
+    let _initial = service.get_databases(&mut executor, "conn-db").await.unwrap();
+    assert_eq!(executor.call_count(), 1);
+
+    // Cria banco válido
+    let created = service
+        .create_database(&mut executor, "conn-db", "SequeleiLab")
+        .await
+        .expect("create_database deve executar DDL sanitizado");
+    assert_eq!(
+        created,
+        DatabaseInfo {
+            name: "SequeleiLab".to_string(),
+            state: "ONLINE".to_string(),
+        }
+    );
+    assert_eq!(
+        executor.last_sql().unwrap(),
+        "create database [SequeleiLab]"
+    );
+
+    // Cache foi invalidado: próxima chamada a get_databases consulta o banco novamente
+    let _refreshed = service.get_databases(&mut executor, "conn-db").await.unwrap();
+    assert_eq!(executor.call_count(), 3);
+
+    // Payload de SQL injection deve ser rejeitado sem chamar o executor
+    let before_count = executor.call_count();
+    let bad = service
+        .create_database(&mut executor, "conn-db", "Test]; DROP DATABASE master; --")
+        .await;
+    assert!(matches!(bad, Err(MetadataError::InvalidIdentifier(_))));
+    assert_eq!(executor.call_count(), before_count);
+}
+
 #[test]
 fn ts_rs_generates_camel_case_typescript_definitions() {
     assert!(DatabaseInfo::decl().contains("name: string"));

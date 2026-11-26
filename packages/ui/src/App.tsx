@@ -1,15 +1,24 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
+import { ConnectionManagerDialog } from './components/ConnectionManagerDialog';
 import { ExecutionOutput } from './editor/ExecutionOutput';
 import { RunButton } from './editor/RunButton';
 import { SqlEditor } from './editor/SqlEditor';
 import { TabBar } from './editor/TabBar';
 import { ObjectTree } from './explorer/ObjectTree';
+import { useConnections } from './hooks/useConnections';
+import {
+  createExplorerDatabase,
+  loadExplorerDatabases,
+  refreshMetadataCache,
+} from './services/metadata';
+import { resetExplorer, setExplorerError, setNodes } from './store/explorerSlice';
 import { setTheme } from './store/preferencesSlice';
 import { closeTab, newTab, setActiveTab, updateTabSql } from './store/tabsSlice';
 import { usePreference } from './store/usePreference';
 
+import type { ConnectionSummary } from './services/connections';
 import type { AppDispatch, RootState } from './store/store';
 
 type TauriInvoke = <T>(command: string, payload?: unknown) => Promise<T>;
@@ -46,6 +55,8 @@ declare global {
 export function App() {
   const [status, setStatus] = useState('Conectando ao shell Tauri...');
   const [selectedSql, setSelectedSql] = useState('');
+  const [connectionsOpen, setConnectionsOpen] = useState(false);
+  const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState('');
   const [chatHistory, setChatHistory] = useState<
     Array<{ role: 'assistant' | 'user'; text: string }>
@@ -55,6 +66,17 @@ export function App() {
   const execution = useSelector((state: RootState) => state.execution);
   const { activeTabId, tabs } = useSelector((state: RootState) => state.tabs);
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0]!;
+  const {
+    connections,
+    create: createConnection,
+    error: connectionsError,
+    loading: connectionsLoading,
+    remove: deleteConnection,
+    test: testConnection,
+  } = useConnections();
+
+  const activeConnection =
+    connections.find((connection) => connection.id === activeConnectionId) ?? null;
 
   const [leftWidth, setLeftWidth] = useState(() =>
     readPanelPreference('explorerWidth', Number(localStorage.getItem('explorerWidth')) || 248),
@@ -65,6 +87,40 @@ export function App() {
   const dragState = useRef<{ side: 'left' | 'right'; startX: number; startWidth: number } | null>(
     null,
   );
+
+  useEffect(() => {
+    if (!activeConnectionId && connections.length > 0) {
+      setActiveConnectionId(connections[0]!.id);
+    } else if (
+      activeConnectionId &&
+      !connections.some((connection) => connection.id === activeConnectionId)
+    ) {
+      setActiveConnectionId(connections[0]?.id ?? null);
+    }
+  }, [activeConnectionId, connections]);
+
+  const loadRealDatabases = useCallback(
+    async (connectionId: string, invalidate = false) => {
+      dispatch(setExplorerError(null));
+      try {
+        if (invalidate) {
+          await refreshMetadataCache(connectionId);
+        }
+        const databaseNodes = await loadExplorerDatabases(connectionId);
+        dispatch(setNodes(databaseNodes));
+      } catch (err) {
+        dispatch(setExplorerError(err instanceof Error ? err.message : String(err)));
+      }
+    },
+    [dispatch],
+  );
+
+  useEffect(() => {
+    if (!activeConnection) {
+      return;
+    }
+    void loadRealDatabases(activeConnection.id);
+  }, [activeConnection, loadRealDatabases]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -163,9 +219,31 @@ export function App() {
     setChatMessage('');
   };
 
+  const handleSelectConnection = (connection: ConnectionSummary) => {
+    setActiveConnectionId(connection.id);
+  };
+
+  const handleDeleteConnection = async (id: string) => {
+    await deleteConnection(id);
+    if (activeConnectionId === id) {
+      setActiveConnectionId(null);
+      dispatch(resetExplorer());
+    }
+  };
+
+  const handleCreateDatabase = async (connectionId: string, dbName: string) => {
+    await createExplorerDatabase(connectionId, dbName);
+    await loadRealDatabases(connectionId, true);
+  };
+
+  const isProduction = activeConnection?.environment === 'production';
+
   return (
     <div className="app-shell" data-testid="app-shell">
-      <header className="topbar" aria-label="Barra superior">
+      <header
+        className={`topbar ${isProduction ? 'topbar-production' : ''}`}
+        aria-label="Barra superior"
+      >
         <div className="brand-lockup">
           <span className="brand-mark" aria-hidden="true">
             S
@@ -175,12 +253,23 @@ export function App() {
             <span>QueryPilot</span>
           </div>
         </div>
-        <div className="connection-status" aria-label="Status da conexão">
+        <button
+          type="button"
+          className="connection-status"
+          aria-label="Gerenciar conexões"
+          data-testid="connection-button"
+          onClick={() => setConnectionsOpen(true)}
+        >
           <span className="status-dot" aria-hidden="true" />
-          <span>SQL Server</span>
-          <span className="connection-name">desenvolvimento</span>
-        </div>
+          <span>{isProduction ? '🔒 SQL Server' : 'SQL Server'}</span>
+          <span className="connection-name">
+            {activeConnection ? activeConnection.name : 'desenvolvimento'}
+          </span>
+        </button>
         <div className="topbar-actions">
+          <button type="button" onClick={() => setConnectionsOpen(true)}>
+            Conexões
+          </button>
           <button
             type="button"
             onClick={() => dispatch(setTheme(theme === 'dark' ? 'light' : 'dark'))}
@@ -202,8 +291,23 @@ export function App() {
           aria-label="Explorador de objetos"
           data-testid="explorer-panel"
         >
-          <PanelHeading eyebrow="OBJETOS" title="Explorador" action="Atualizar" />
-          <ObjectTree onAskAi={handleAskAi} onSelectTop1000={handleSelectTop1000} />
+          <PanelHeading
+            eyebrow="OBJETOS"
+            title="Explorador"
+            action="Atualizar"
+            onAction={() => {
+              if (activeConnection) {
+                void loadRealDatabases(activeConnection.id, true);
+              } else {
+                setConnectionsOpen(true);
+              }
+            }}
+          />
+          <ObjectTree
+            {...(activeConnection ? { connectionId: activeConnection.id } : {})}
+            onAskAi={handleAskAi}
+            onSelectTop1000={handleSelectTop1000}
+          />
         </aside>
 
         <ResizeHandle
@@ -217,7 +321,13 @@ export function App() {
           <PanelHeading
             eyebrow={activeTab.title.toUpperCase()}
             title={activeTab.title}
-            actionNode={<RunButton selectedSql={selectedSql} sql={activeTab.sql} />}
+            actionNode={
+              <RunButton
+                {...(activeConnection ? { connectionId: activeConnection.id } : {})}
+                selectedSql={selectedSql}
+                sql={activeTab.sql}
+              />
+            }
           />
           <TabBar
             activeTabId={activeTabId}
@@ -236,7 +346,11 @@ export function App() {
           </div>
           <ExecutionOutput />
           <div className="editor-footer">
-            <span>SQL Server 2016+</span>
+            <span>
+              {activeConnection
+                ? `${activeConnection.host}:${activeConnection.port}`
+                : 'SQL Server 2016+'}
+            </span>
             <span>Ln 1, Col 1</span>
           </div>
         </main>
@@ -333,6 +447,20 @@ export function App() {
         <span>UTF-8</span>
         <span>SQL</span>
       </footer>
+
+      <ConnectionManagerDialog
+        activeConnectionId={activeConnectionId}
+        connections={connections}
+        error={connectionsError}
+        isOpen={connectionsOpen}
+        loading={connectionsLoading}
+        onClose={() => setConnectionsOpen(false)}
+        onCreateConnection={createConnection}
+        onCreateDatabase={handleCreateDatabase}
+        onDeleteConnection={handleDeleteConnection}
+        onSelectConnection={handleSelectConnection}
+        onTestConnection={testConnection}
+      />
     </div>
   );
 }

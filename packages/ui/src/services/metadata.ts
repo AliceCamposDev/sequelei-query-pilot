@@ -1,4 +1,5 @@
 import {
+  createDatabase,
   getColumns,
   getDatabases,
   getProcedures,
@@ -130,6 +131,14 @@ export async function loadExplorerNodeChildren(
   }
 
   return [];
+}
+
+export function createExplorerDatabase(
+  connectionId: string,
+  name: string,
+  invoke: MetadataInvoker = defaultMetadataInvoker,
+) {
+  return createDatabase(connectionId, name, invoke);
 }
 
 export function refreshMetadataCache(
