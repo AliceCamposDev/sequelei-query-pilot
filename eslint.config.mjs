@@ -11,6 +11,7 @@ export default tseslint.config(
       '**/target/**',
       '**/playwright-report/**',
       '**/test-results/**',
+      '**/generated/**',
       'stylelint-palette-plugin.cjs',
     ],
   },

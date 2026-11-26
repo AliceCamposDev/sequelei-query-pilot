@@ -222,6 +222,21 @@ pub fn create_sql_server_pool(
         .map_err(|error| SqlConnectionError::Pool(error.to_string()))
 }
 
+pub async fn connect_with_options(
+    options: &ConnectionOptions,
+) -> Result<SqlServerClient, SqlConnectionError> {
+    let config = options.to_tiberius_config()?;
+    let tcp = TcpStream::connect(config.get_addr())
+        .await
+        .map_err(SqlConnectionError::Network)?;
+
+    tcp.set_nodelay(true).map_err(SqlConnectionError::Network)?;
+
+    Client::connect(config, tcp.compat_write())
+        .await
+        .map_err(SqlConnectionError::Handshake)
+}
+
 pub async fn connect_sql_server(
     connection_string: &str,
 ) -> Result<SqlServerClient, SqlConnectionError> {

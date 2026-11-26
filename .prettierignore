@@ -3,3 +3,4 @@ dist
 coverage
 pnpm-lock.yaml
 ai_slop
+packages/db/src/generated
