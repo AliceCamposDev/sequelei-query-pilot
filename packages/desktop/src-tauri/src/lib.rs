@@ -4,9 +4,15 @@ use rusqlite::Connection;
 use tauri::AppHandle;
 use tauri::Manager;
 
+mod connections;
 mod credential_store;
 mod sql_connection;
 
+pub use connections::{
+    ConnectionEnvironment, ConnectionManager, ConnectionManagerError, ConnectionSummary,
+    ConnectionTestResult, ConnectionTester, CreateAuthPayload, CreateConnectionPayload,
+    MockConnectionTester, TiberiusConnectionTester,
+};
 pub use credential_store::{
     CredentialBackend, CredentialError, CredentialStore, InMemoryCredentialBackend, KeyringBackend,
     SecretString, UnavailableCredentialBackend, DEFAULT_SERVICE_NAME,
@@ -23,7 +29,7 @@ pub fn ping() -> &'static str {
 
 #[tauri::command]
 fn save_preference(key: String, value: String, app: AppHandle) -> Result<(), String> {
-    let connection = open_preferences_database(&app)?;
+    let connection = open_app_database(&app)?;
     connection
         .execute(
             "INSERT INTO user_preference (key, value) VALUES (?1, ?2)
@@ -37,7 +43,7 @@ fn save_preference(key: String, value: String, app: AppHandle) -> Result<(), Str
 
 #[tauri::command]
 fn load_preferences(app: AppHandle) -> Result<std::collections::HashMap<String, String>, String> {
-    let connection = open_preferences_database(&app)?;
+    let connection = open_app_database(&app)?;
     let mut statement = connection
         .prepare("SELECT key, value FROM user_preference")
         .map_err(|error| error.to_string())?;
@@ -54,7 +60,49 @@ fn load_preferences(app: AppHandle) -> Result<std::collections::HashMap<String, 
     Ok(preferences)
 }
 
-fn open_preferences_database(app: &AppHandle) -> Result<Connection, String> {
+#[tauri::command]
+fn list_connections(app: AppHandle) -> Result<Vec<ConnectionSummary>, String> {
+    let db = open_app_database(&app)?;
+    ConnectionManager::system()
+        .list_connections(&db)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn create_connection(
+    payload: CreateConnectionPayload,
+    app: AppHandle,
+) -> Result<ConnectionSummary, String> {
+    let db = open_app_database(&app)?;
+    ConnectionManager::system()
+        .create_connection(&db, payload)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn test_connection(id: String, app: AppHandle) -> Result<ConnectionTestResult, String> {
+    let options = {
+        let db = open_app_database(&app)?;
+        ConnectionManager::system()
+            .resolve_connection_options(&db, &id)
+            .map_err(|error| error.to_string())?
+    };
+
+    TiberiusConnectionTester
+        .test(&options)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn delete_connection(id: String, app: AppHandle) -> Result<(), String> {
+    let db = open_app_database(&app)?;
+    ConnectionManager::system()
+        .delete_connection(&db, &id)
+        .map_err(|error| error.to_string())
+}
+
+fn open_app_database(app: &AppHandle) -> Result<Connection, String> {
     let directory = app
         .path()
         .app_data_dir()
@@ -73,6 +121,9 @@ fn open_preferences_database(app: &AppHandle) -> Result<Connection, String> {
         )
         .map_err(|error| error.to_string())?;
 
+    ConnectionManager::<KeyringBackend>::init_schema(&connection)
+        .map_err(|error| error.to_string())?;
+
     Ok(connection)
 }
 
@@ -84,9 +135,13 @@ fn ping_command() -> &'static str {
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            create_connection,
+            delete_connection,
+            list_connections,
             load_preferences,
             ping_command,
-            save_preference
+            save_preference,
+            test_connection
         ])
         .run(tauri::generate_context!())
         .expect("error while running Sequelei");
