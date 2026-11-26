@@ -39,6 +39,7 @@ function renderApp() {
 describe('App integration', () => {
   afterEach(() => {
     cleanup();
+    localStorage.clear();
     delete window.__TAURI__;
   });
 
@@ -208,5 +209,46 @@ describe('App integration', () => {
       resultsHeight?: number;
     };
     expect(saved.resultsHeight).toBe(220);
+  });
+
+  it('restaura abas e conteúdo salvos via load_app_state ao reabrir o app', async () => {
+    const invoke = vi.fn(async (command: string) => {
+      if (command === 'ping') return 'pong';
+      if (command === 'list_connections') return [];
+      if (command === 'load_app_state') {
+        return {
+          activeTabId: 'restored-2',
+          tabs: [
+            {
+              dirty: false,
+              id: 'restored-1',
+              sql: 'select 1;',
+              title: 'Aba 1',
+            },
+            {
+              dirty: true,
+              id: 'restored-2',
+              sql: 'select * from dbo.Recuperada;',
+              title: 'Recuperada',
+            },
+          ],
+        };
+      }
+      return undefined;
+    });
+
+    window.__TAURI__ = {
+      core: {
+        invoke: invoke as unknown as <T>(command: string, payload?: unknown) => Promise<T>,
+      },
+    };
+
+    renderApp();
+
+    expect(await screen.findByRole('tab', { name: /Recuperada/ })).not.toBeNull();
+    const editor = screen.getByRole('textbox', {
+      name: 'Monaco SQL editor',
+    }) as HTMLTextAreaElement;
+    expect(editor.value).toBe('select * from dbo.Recuperada;');
   });
 });

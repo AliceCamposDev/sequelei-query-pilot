@@ -15,7 +15,8 @@ import {
 } from './services/metadata';
 import { resetExplorer, setExplorerError, setNodes } from './store/explorerSlice';
 import { setTheme } from './store/preferencesSlice';
-import { closeTab, newTab, setActiveTab, updateTabSql } from './store/tabsSlice';
+import { closeTab, hydrateTabs, newTab, setActiveTab, updateTabSql } from './store/tabsSlice';
+import { loadAppState } from './store/tabsSync';
 import { usePreference } from './store/usePreference';
 
 import type { ConnectionSummary } from './services/connections';
@@ -131,6 +132,18 @@ export function App() {
   useEffect(() => {
     setSelectedSql('');
   }, [activeTabId]);
+
+  useEffect(() => {
+    let active = true;
+    void loadAppState().then((restored) => {
+      if (active && restored.tabs.length > 0) {
+        dispatch(hydrateTabs(restored));
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

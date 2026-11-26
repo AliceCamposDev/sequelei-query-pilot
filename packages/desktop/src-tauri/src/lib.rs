@@ -3,11 +3,18 @@ use std::fs;
 use rusqlite::Connection;
 use tauri::{AppHandle, Emitter, Manager, State};
 
+mod app_state;
 mod connections;
 mod credential_store;
 mod metadata;
 mod query_execution;
 mod sql_connection;
+
+pub use app_state::{
+    init_app_state_schema, load_app_state_from_db, load_app_state_from_path,
+    save_app_state_to_db, save_app_state_to_path, AppStateError, PersistedAppState,
+    PersistedQueryTab, PersistedTabCursor, PersistedTabScroll,
+};
 
 pub use connections::{
     ConnectionEnvironment, ConnectionManager, ConnectionManagerError, ConnectionSummary,
@@ -343,14 +350,32 @@ fn resolve_options_for_app(app: &AppHandle, id: &str) -> Result<ConnectionOption
         .map_err(|error| error.to_string())
 }
 
-fn open_app_database(app: &AppHandle) -> Result<Connection, String> {
+#[tauri::command]
+fn save_app_state(state: PersistedAppState, app: AppHandle) -> Result<(), String> {
+    let db_path = app_database_path(&app)?;
+    save_app_state_to_path(&db_path, &state).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn load_app_state(app: AppHandle) -> PersistedAppState {
+    match app_database_path(&app) {
+        Ok(db_path) => load_app_state_from_path(&db_path),
+        Err(_) => PersistedAppState::default(),
+    }
+}
+
+fn app_database_path(app: &AppHandle) -> Result<std::path::PathBuf, String> {
     let directory = app
         .path()
         .app_data_dir()
         .map_err(|error| error.to_string())?;
     fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
-    let connection =
-        Connection::open(directory.join("sequelei.db")).map_err(|error| error.to_string())?;
+    Ok(directory.join("sequelei.db"))
+}
+
+fn open_app_database(app: &AppHandle) -> Result<Connection, String> {
+    let db_path = app_database_path(app)?;
+    let connection = Connection::open(db_path).map_err(|error| error.to_string())?;
 
     connection
         .execute(
@@ -364,6 +389,8 @@ fn open_app_database(app: &AppHandle) -> Result<Connection, String> {
 
     ConnectionManager::<KeyringBackend>::init_schema(&connection)
         .map_err(|error| error.to_string())?;
+
+    init_app_state_schema(&connection).map_err(|error| error.to_string())?;
 
     Ok(connection)
 }
@@ -391,8 +418,10 @@ pub fn run() {
             get_views,
             invalidate_metadata_cache,
             list_connections,
+            load_app_state,
             load_preferences,
             ping_command,
+            save_app_state,
             save_preference,
             test_connection
         ])

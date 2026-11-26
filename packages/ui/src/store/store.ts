@@ -5,6 +5,7 @@ import { explorerReducer } from './explorerSlice';
 import { preferencesReducer } from './preferencesSlice';
 import { createPreferencesSync } from './preferencesSync';
 import { tabsReducer } from './tabsSlice';
+import { createTabsSync } from './tabsSync';
 
 export const store = configureStore({
   reducer: {
@@ -13,7 +14,8 @@ export const store = configureStore({
     preferences: preferencesReducer,
     tabs: tabsReducer,
   },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(createPreferencesSync()),
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(createPreferencesSync(), createTabsSync()),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

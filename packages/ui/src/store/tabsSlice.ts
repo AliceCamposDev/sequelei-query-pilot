@@ -111,6 +111,14 @@ const tabsSlice = createSlice({
         state.activeTabId = target.id;
       }
     },
+    hydrateTabs(state, action: PayloadAction<{ activeTabId: string | null; tabs: QueryTab[] }>) {
+      if (action.payload.tabs.length === 0) return;
+      state.tabs = action.payload.tabs;
+      const matchingActive = action.payload.tabs.find(
+        (tab) => tab.id === action.payload.activeTabId,
+      );
+      state.activeTabId = matchingActive ? matchingActive.id : action.payload.tabs[0]!.id;
+    },
   },
 });
 
@@ -123,6 +131,7 @@ export const {
   updateTabCursor,
   updateTabScroll,
   cycleTab,
+  hydrateTabs,
 } = tabsSlice.actions;
 export const tabsReducer = tabsSlice.reducer;
 export { initialState as defaultTabs };
