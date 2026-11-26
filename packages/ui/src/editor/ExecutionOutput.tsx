@@ -110,7 +110,11 @@ export function ExecutionOutput() {
           )
         ) : execution.result && execution.result.columns.length > 0 ? (
           <div className="execution-grid-wrapper">
-            <table className="execution-grid" data-testid="result-grid">
+            <table
+              key={execution.result.executionId}
+              className="execution-grid"
+              data-testid="result-grid"
+            >
               <thead>
                 <tr>
                   <th className="execution-grid-index">#</th>

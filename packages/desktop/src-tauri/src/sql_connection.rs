@@ -268,7 +268,6 @@ impl SqlExecutor for SqlServerClient {
 
         let mut columns = Vec::new();
         let mut rows = Vec::new();
-        let rows_affected = 0;
 
         let results = stream
             .into_results()
@@ -276,18 +275,27 @@ impl SqlExecutor for SqlServerClient {
             .map_err(SqlConnectionError::Query)?;
 
         for result_set in results {
+            if result_set.is_empty() {
+                continue;
+            }
+            let mut set_columns = Vec::new();
+            let mut set_rows = Vec::with_capacity(result_set.len());
             for row in result_set {
-                if columns.is_empty() {
-                    columns = row
+                if set_columns.is_empty() {
+                    set_columns = row
                         .columns()
                         .iter()
                         .map(|c| c.name().to_string())
                         .collect();
                 }
                 let row_values: Vec<SqlValue> = row.into_iter().map(SqlValue::from).collect();
-                rows.push(row_values);
+                set_rows.push(row_values);
             }
+            columns = set_columns;
+            rows = set_rows;
         }
+
+        let rows_affected = rows.len() as u64;
 
         Ok(QueryResult {
             columns,

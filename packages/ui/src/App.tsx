@@ -27,6 +27,7 @@ const USER_PREFERENCE_KEY = 'user_preference';
 type PanelPreferences = {
   chatWidth?: number;
   explorerWidth?: number;
+  resultsHeight?: number;
 };
 
 function readPanelPreference(name: keyof Required<PanelPreferences>, fallback: number) {
@@ -84,9 +85,14 @@ export function App() {
   const [rightWidth, setRightWidth] = useState(() =>
     readPanelPreference('chatWidth', Number(localStorage.getItem('chatWidth')) || 320),
   );
-  const dragState = useRef<{ side: 'left' | 'right'; startX: number; startWidth: number } | null>(
-    null,
+  const [resultsHeight, setResultsHeight] = useState(() =>
+    readPanelPreference('resultsHeight', Number(localStorage.getItem('resultsHeight')) || 220),
   );
+  const dragState = useRef<
+    | { side: 'left' | 'right'; startX: number; startWidth: number }
+    | { side: 'bottom'; startY: number; startHeight: number }
+    | null
+  >(null);
 
   useEffect(() => {
     if (!activeConnectionId && connections.length > 0) {
@@ -123,6 +129,10 @@ export function App() {
   }, [activeConnection, loadRealDatabases]);
 
   useEffect(() => {
+    setSelectedSql('');
+  }, [activeTabId]);
+
+  useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('theme', theme);
   }, [theme]);
@@ -130,9 +140,13 @@ export function App() {
   useEffect(() => {
     localStorage.setItem(
       USER_PREFERENCE_KEY,
-      JSON.stringify({ chatWidth: rightWidth, explorerWidth: leftWidth }),
+      JSON.stringify({
+        chatWidth: rightWidth,
+        explorerWidth: leftWidth,
+        resultsHeight,
+      }),
     );
-  }, [leftWidth, rightWidth]);
+  }, [leftWidth, resultsHeight, rightWidth]);
 
   useEffect(() => {
     const invoke = window.__TAURI__?.core?.invoke;
@@ -148,8 +162,20 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const getMaxResultsHeight = () => Math.max(200, Math.floor(window.innerHeight * 0.65));
+
     const handlePointerMove = (event: PointerEvent) => {
       if (!dragState.current) return;
+
+      if (dragState.current.side === 'bottom') {
+        const deltaY = dragState.current.startY - event.clientY;
+        const nextHeight = Math.max(
+          110,
+          Math.min(getMaxResultsHeight(), dragState.current.startHeight + deltaY),
+        );
+        setResultsHeight(nextHeight);
+        return;
+      }
 
       const { side, startX, startWidth } = dragState.current;
       const delta = event.clientX - startX;
@@ -178,7 +204,7 @@ export function App() {
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [leftWidth, rightWidth]);
+  }, [leftWidth, resultsHeight, rightWidth]);
 
   const startResize = (side: 'left' | 'right', event: React.PointerEvent<HTMLButtonElement>) => {
     dragState.current = {
@@ -190,9 +216,24 @@ export function App() {
     document.body.style.cursor = 'col-resize';
   };
 
+  const startResultsResize = (event: React.PointerEvent<HTMLButtonElement>) => {
+    dragState.current = {
+      side: 'bottom',
+      startHeight: resultsHeight,
+      startY: event.clientY,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    document.body.style.cursor = 'row-resize';
+  };
+
   const adjustWidth = (side: 'left' | 'right', direction: number) => {
     if (side === 'left') setLeftWidth((value) => Math.max(200, Math.min(420, value + direction)));
     if (side === 'right') setRightWidth((value) => Math.max(240, Math.min(460, value + direction)));
+  };
+
+  const adjustResultsHeight = (delta: number) => {
+    const maxHeight = Math.max(200, Math.floor(window.innerHeight * 0.65));
+    setResultsHeight((value) => Math.max(110, Math.min(maxHeight, value + delta)));
   };
 
   const handleSelectTop1000 = (schema: string, table: string) => {
@@ -317,7 +358,14 @@ export function App() {
           onAdjust={adjustWidth}
         />
 
-        <main className="panel editor-panel" aria-label="Editor SQL" data-testid="editor-panel">
+        <main
+          className="panel editor-panel"
+          aria-label="Editor SQL"
+          data-testid="editor-panel"
+          style={{
+            gridTemplateRows: `auto 34px minmax(120px, 1fr) 6px ${resultsHeight}px 25px`,
+          }}
+        >
           <PanelHeading
             eyebrow={activeTab.title.toUpperCase()}
             title={activeTab.title}
@@ -344,6 +392,11 @@ export function App() {
               value={activeTab.sql}
             />
           </div>
+          <HorizontalResizeHandle
+            value={resultsHeight}
+            onPointerDown={startResultsResize}
+            onAdjust={adjustResultsHeight}
+          />
           <ExecutionOutput />
           <div className="editor-footer">
             <span>
@@ -490,6 +543,40 @@ function PanelHeading({
         </button>
       )}
     </div>
+  );
+}
+
+function HorizontalResizeHandle({
+  onAdjust,
+  onPointerDown,
+  value,
+}: {
+  onAdjust: (delta: number) => void;
+  onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => void;
+  value: number;
+}) {
+  return (
+    <button
+      className="resize-handle-horizontal"
+      type="button"
+      aria-label="Redimensionar painel de resultados"
+      aria-orientation="horizontal"
+      role="separator"
+      aria-valuenow={value}
+      aria-valuemin={110}
+      aria-valuemax={600}
+      onPointerDown={onPointerDown}
+      onKeyDown={(event) => {
+        if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          onAdjust(24);
+        }
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          onAdjust(-24);
+        }
+      }}
+    />
   );
 }
 

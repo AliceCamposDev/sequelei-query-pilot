@@ -40,6 +40,19 @@ describe('executionSlice', () => {
     expect(state.activeExecutionId).toBeNull();
     expect(state.durationMs).toBe(42);
     expect(state.result?.rows).toHaveLength(1);
+
+    // Iniciar nova execução limpa resultado anterior para nunca mostrar dados antigos
+    state = executionReducer(
+      state,
+      startExecution({
+        executableSql: 'select 2',
+        executionId: 'exec-1b',
+        nolockApplied: false,
+        warnings: [],
+      }),
+    );
+    expect(state.result).toBeNull();
+    expect(state.messages.at(-1)?.text).toContain('select 2');
   });
 
   it('cancela execução em andamento e ignora respostas tardias da execução cancelada', () => {

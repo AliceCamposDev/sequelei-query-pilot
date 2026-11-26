@@ -207,6 +207,13 @@ describe('injectNolock', () => {
     expect(injectNolock('with cte (a as (select 1) select * from cte')).toContain('with cte');
   });
 
+  it('adiciona with (nolock) em select precedido por use <banco>', () => {
+    const input = 'use SequeleiDev;\nselect * from dbo.Clientes where Ativo = 1';
+    expect(injectNolock(input)).toBe(
+      'use SequeleiDev;\nselect * from dbo.Clientes with (nolock) where Ativo = 1',
+    );
+  });
+
   it('mantém regressão em SQL analítico real com joins, comentários e CTE', () => {
     const realSql = `-- Relatório de faturamento por cidade
 with pedidos_recentes as (

@@ -76,4 +76,11 @@ describe('classifyCommand', () => {
       'write',
     );
   });
+
+  it('suporta comando use isolado e prefixando leitura, escrita ou DDL', () => {
+    expect(classifyCommand('use SequeleiDev;')).toBe('read');
+    expect(classifyCommand('USE [SequeleiDev]\nSELECT * FROM dbo.Clientes')).toBe('read');
+    expect(classifyCommand('use SequeleiDev; insert into dbo.Clientes values (1)')).toBe('write');
+    expect(classifyCommand('use SequeleiDev;\ncreate table dbo.Clientes (Id int);')).toBe('ddl');
+  });
 });

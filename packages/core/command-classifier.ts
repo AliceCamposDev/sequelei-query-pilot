@@ -30,7 +30,12 @@ export function classifyCommand(sql: string): CommandKind {
     throw new InvalidSqlError('SQL vazio ou composto apenas por comentários', 'EMPTY_SQL');
   }
 
-  const commandSql = commandAfterConditional(cleanedSql).toLowerCase();
+  const withoutUse = stripLeadingUseStatements(cleanedSql);
+  if (!withoutUse) {
+    return 'read';
+  }
+
+  const commandSql = commandAfterConditional(withoutUse).toLowerCase();
 
   if (/^with\s+/.test(commandSql)) {
     return 'read';
@@ -47,6 +52,18 @@ export function classifyCommand(sql: string): CommandKind {
   if (['create', 'alter', 'drop', 'exec'].includes(keyword)) return 'ddl';
 
   throw new InvalidSqlError(`Comando SQL não suportado: ${keyword}`, 'UNSUPPORTED_COMMAND');
+}
+
+function stripLeadingUseStatements(sql: string): string {
+  let remaining = sql;
+
+  while (/^use\s+(?:\[[^\]]+\]|[A-Za-z_][\w$]*)\s*;?/i.test(remaining)) {
+    remaining = stripLeadingComments(
+      remaining.replace(/^use\s+(?:\[[^\]]+\]|[A-Za-z_][\w$]*)\s*;?/i, ''),
+    );
+  }
+
+  return remaining;
 }
 
 function commandAfterConditional(sql: string): string {

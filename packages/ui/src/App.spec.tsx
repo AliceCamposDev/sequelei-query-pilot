@@ -188,4 +188,25 @@ describe('App integration', () => {
       name: 'SequeleiLab',
     });
   });
+
+  it('permite redimensionar o painel de resultados verticalmente e persiste a altura', () => {
+    localStorage.clear();
+    renderApp();
+
+    const resizer = screen.getByRole('separator', {
+      name: 'Redimensionar painel de resultados',
+    });
+    expect(resizer.getAttribute('aria-valuenow')).toBe('220');
+
+    fireEvent.keyDown(resizer, { key: 'ArrowUp' });
+    expect(resizer.getAttribute('aria-valuenow')).toBe('244');
+
+    fireEvent.keyDown(resizer, { key: 'ArrowDown' });
+    expect(resizer.getAttribute('aria-valuenow')).toBe('220');
+
+    const saved = JSON.parse(localStorage.getItem('user_preference') ?? '{}') as {
+      resultsHeight?: number;
+    };
+    expect(saved.resultsHeight).toBe(220);
+  });
 });

@@ -65,11 +65,13 @@ const executionSlice = createSlice({
       state.lastExecutableSql = action.payload.executableSql;
       state.nolockApplied = action.payload.nolockApplied;
       state.warnings = action.payload.warnings;
+      state.result = null;
       state.error = null;
       state.durationMs = null;
 
+      const sqlPreview = action.payload.executableSql.replace(/\s+/g, ' ').trim().slice(0, 140);
       state.messages.push(
-        makeMessage('info', `Executando consulta (${action.payload.executionId})...`),
+        makeMessage('info', `Executando consulta (${action.payload.executionId}): ${sqlPreview}`),
       );
       if (action.payload.nolockApplied) {
         state.messages.push(

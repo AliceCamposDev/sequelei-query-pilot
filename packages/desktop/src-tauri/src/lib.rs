@@ -1,7 +1,7 @@
 use std::fs;
 
 use rusqlite::Connection;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 mod connections;
 mod credential_store;
@@ -23,7 +23,8 @@ pub use metadata::{
     MetadataService, ProcedureInfo, TableInfo, ViewInfo, DEFAULT_METADATA_CACHE_TTL,
 };
 pub use query_execution::{
-    ExecuteQueryOptions, ExecuteQueryResponse, ExecutionRegistry, DEFAULT_QUERY_TIMEOUT_MS,
+    stream_result_chunks, ExecuteQueryOptions, ExecuteQueryResponse, ExecutionRegistry,
+    ResultChunk, DEFAULT_QUERY_TIMEOUT_MS, DEFAULT_RESULT_CHUNK_SIZE,
 };
 pub use sql_connection::{
     connect_sql_server, connect_with_options, create_sql_server_pool, execute_query,
@@ -284,10 +285,18 @@ async fn execute_query_command(
         .await
         .map_err(|error| error.to_string())?;
 
-    registry
+    let response = registry
         .execute_with_registry(&mut client, &sql, opts)
         .await
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+
+    if response.rows.len() > DEFAULT_RESULT_CHUNK_SIZE {
+        stream_result_chunks(&response, DEFAULT_RESULT_CHUNK_SIZE, |chunk| {
+            let _ = app.emit("query-result-chunk", &chunk);
+        });
+    }
+
+    Ok(response)
 }
 
 #[tauri::command]

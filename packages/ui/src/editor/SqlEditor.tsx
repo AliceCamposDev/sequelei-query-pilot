@@ -1,4 +1,5 @@
 import Editor from '@monaco-editor/react';
+import { useEffect, useRef } from 'react';
 
 import { configureMonaco, SQL_THEME_DARK, SQL_THEME_LIGHT } from './monacoSetup';
 
@@ -11,6 +12,11 @@ interface SqlEditorProps {
 
 export function SqlEditor({ onChange, onSelectionChange, theme = 'dark', value }: SqlEditorProps) {
   const monacoTheme = theme === 'light' ? SQL_THEME_LIGHT : SQL_THEME_DARK;
+  const selectionCallbackRef = useRef(onSelectionChange);
+
+  useEffect(() => {
+    selectionCallbackRef.current = onSelectionChange;
+  }, [onSelectionChange]);
 
   return (
     <Editor
@@ -19,16 +25,20 @@ export function SqlEditor({ onChange, onSelectionChange, theme = 'dark', value }
       language="sql"
       onChange={(nextValue) => onChange(nextValue ?? '')}
       onMount={(editor) => {
-        if (!onSelectionChange) return;
-        editor.onDidChangeCursorSelection(() => {
+        const syncSelection = () => {
+          const callback = selectionCallbackRef.current;
+          if (!callback) return;
           const model = editor.getModel();
           const selection = editor.getSelection();
           if (!model || !selection || selection.isEmpty()) {
-            onSelectionChange('');
+            callback('');
             return;
           }
-          onSelectionChange(model.getValueInRange(selection));
-        });
+          callback(model.getValueInRange(selection));
+        };
+
+        editor.onDidChangeCursorSelection(syncSelection);
+        editor.onDidChangeModelContent(syncSelection);
       }}
       options={{
         automaticLayout: true,

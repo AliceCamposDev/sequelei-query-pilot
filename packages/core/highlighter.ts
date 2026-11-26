@@ -78,6 +78,7 @@ export const KEYWORDS = new Set([
   'truncate',
   'union',
   'update',
+  'use',
   'using',
   'values',
   'view',
